@@ -2,6 +2,10 @@
 
 Andres Löh, Well-Typed LLP
 
+## GitHub repository for this track
+
+https://github.com/well-typed/beginners-zurihac2025
+
 ## The high-level plan
 
 Day 1:
