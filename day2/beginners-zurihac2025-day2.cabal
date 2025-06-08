@@ -1,0 +1,19 @@
+cabal-version: 3.0
+name: beginners-zurihac2025-day2
+author: Andres Löh
+maintainer: Andres Löh <andres@well-typed.com>
+synopsis: Day 2 of ZuriHac 2025 Beginners Track
+version: 1.0
+build-type: Simple
+license: BSD-3-Clause
+
+library
+  default-language: GHC2021
+  build-depends:
+    base < 5,
+    containers,
+    random
+  ghc-options: -Wall
+  exposed-modules:
+    Day2
+    Day2Exercises
