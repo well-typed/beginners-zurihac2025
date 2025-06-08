@@ -7,6 +7,17 @@ module Day1 where
 
 -- *** Step 1. Let's define a datatype for card colours.
 
+data CardColour =
+    Yellow
+  | Red
+  | Purple
+  | Black
+  deriving (Eq, Show)
+
+-- >>> Yellow
+-- No instance for `Show CardColour' arising from a use of `evalPrint'
+-- In a stmt of an interactive GHCi command: evalPrint it_a1GM
+
 -- *** Step 2. To work with card colours conveniently,
 -- it is helpful if we can evaluate expressions that compute
 -- colours and print the results to screen. In order to do
@@ -15,10 +26,21 @@ module Day1 where
 --
 -- One way to do this is to define a function for this ...
 
--- *** Step 3. And then to instantiate the 'Show' class
--- for 'CardColour'. This means we can use the name 'show'
--- to invoke 'showCardColour', but we can also use the same
--- name 'show' to turn other types into strings.
+showColour :: CardColour -> String
+showColour Yellow = "green"
+showColour Red    = "Red"
+showColour Purple = "Purple"
+showColour Black  = "Black"
+
+-- >>> showColour Yellow
+-- "Yellow"
+
+-- instance Show CardColour where
+--   show = showColour
+
+-- >>> Yellow
+-- Yellow
+
 --
 -- And GHC can now use other functions that are internally
 -- using 'show' also on the type 'CardColour'.
@@ -26,6 +48,9 @@ module Day1 where
 -- *** Step 4. Let's see if we can evaluate values of this
 -- type and ask for their inferred types. We can use the
 -- eval plugin or GHCi for this.
+--
+-- >>> :t Yellow
+-- Yellow :: CardColour
 
 -- *** Step 5. An easier way to achieve the same thing is
 -- to simply write 'deriving Show' at the end of the 'data'
@@ -38,10 +63,23 @@ module Day1 where
 -- be very imprecise. So let's use a dedicated type with
 -- exactly three choices and derive 'Show'.
 
+data Rank =
+    Rank1
+  | Rank2
+  | Rank3
+  deriving (Eq, Show)
+
 -- *** Step 6. Colours and ranks are associated with a
 -- point score. Let's start with colours:
 -- Yellow is worth 10 points, red 20, purple 30 and black 100.
 -- Let's define a function that captures this.
+
+colourScore :: CardColour -> Int
+colourScore Yellow = 10
+colourScore Red    = 20
+colourScore Purple = 30
+colourScore Black  = 100
+
 --
 -- Note that a type signature is optional, but strongly
 -- recommended.
@@ -50,17 +88,46 @@ module Day1 where
 -- is the obvious mapping, e.g. rank 2 is associated with
 -- 2 points. Let's define a function for this.
 
+rankScore :: Rank -> Int
+rankScore Rank1 = 1
+rankScore Rank2 = 2
+rankScore Rank3 = 3
+
 -- *** Step 8. Actual cards have a colour and a rank.
 -- Let's define a datatype that captures this.
+
+data Card =
+  MkCard { cardColour :: CardColour, cardRank :: Rank }
+  deriving (Eq, Show)
+
+-- >>> MkCard Red Rank2
+-- MkCard {cardColour = Red, cardRank = Rank2}
+-- >>> :t MkCard Red Rank2
+-- MkCard Red Rank2 :: Card
+-- >>> :t MkCard
+-- MkCard :: CardColour -> Rank -> Card
+-- >>> :t MkCard Red
+-- MkCard Red :: Rank -> Card
+-- >>> :t MkCard Red Rank2
+-- MkCard Red Rank2 :: Card
 
 -- *** Step 9. The score of a card is the sum of the
 -- score of its colour and the score of its rank.
 -- Let's define a function for this.
 
+scoreCard :: Card -> Int
+scoreCard (MkCard colour rank) = colourScore colour + rankScore rank
+
 -- *** Step 10. Sometimes we also want to access the
 -- colour and the rank of a given card. We can always
 -- use pattern matching, but we can also define dedicated
 -- selector functions.
+
+-- cardColour :: Card -> CardColour
+-- cardColour (MkCard colour _rank) = colour
+--
+-- cardRank :: Card -> Rank
+-- cardRank (MkCard _colour rank) = rank
 
 -- This can more easily be done with records.
 
@@ -73,8 +140,45 @@ module Day1 where
 -- function as well, but we can also use 'show' on the score
 -- of the rank.
 
+compactColour :: CardColour -> String
+compactColour Yellow = "Y"
+compactColour Red    = "R"
+compactColour Purple = "P"
+compactColour Black  = "B"
+
+compactCard :: Card -> String
+compactCard (MkCard colour rank) =
+  compactColour colour ++ "-" ++ show (rankScore rank)
+
+-- >>> :t show
+-- show :: Show a => a -> String
+-- >>> (+) 2 5
+-- 7
+-- >>> (++) "foo" "bar"
+-- "foobar"
+-- >>> :t (+)
+-- (+) :: Num a => a -> a -> a
+-- >>> :t (++)
+-- (++) :: [a] -> [a] -> [a]
+
 -- *** Step 12. A "combination" is either a pair or a triple
 -- of cards. Let's define a datatype for this.
+
+data Combination =
+    Pair Card Card
+  | Triple Card Card Card
+  deriving Show
+
+-- >>> :t Pair
+-- Pair :: Card -> Card -> Combination
+-- >>> :t Triple
+-- Triple :: Card -> Card -> Card -> Combination
+
+exampleCard :: Card
+exampleCard = MkCard Red Rank2
+
+-- >>> :t Triple exampleCard exampleCard
+-- Triple exampleCard exampleCard :: Card -> Combination
 
 -- *** Step 13. Combinations also have scores.
 -- The score of a combination
@@ -83,9 +187,30 @@ module Day1 where
 -- We can first define a helper function for the plain score,
 -- which is always the sum.
 
+plainScore :: Combination -> Int
+plainScore (Pair card1 card2) =
+  scoreCard card1 + scoreCard card2
+plainScore (Triple card1 card2 card3) =
+  scoreCard card1 + scoreCard card2 + scoreCard card3
+
 -- *** Step 14. We need a way to check if two cards are
 -- of the same colour. We can define this by pattern
 -- matching as well.
+
+equalColour :: CardColour -> CardColour -> Bool
+equalColour Yellow Yellow = True
+equalColour Red    Red    = True
+equalColour Purple Purple = True
+equalColour Black  Black  = True
+equalColour _      _      = False
+
+-- instance Eq CardColour where
+--   (==) = equalColour
+--
+
+-- data Bool =
+--     False
+--   | True
 
 -- Interlude: Multiple arguments, currying. (If this has
 -- not already happened.)
@@ -107,6 +232,12 @@ module Day1 where
 -- helpful to define one more helper.
 -- (guards, if-then-else, Bool, case, let, where)
 
+sameColourCombination :: Combination -> Bool
+sameColourCombination (Pair card1 card2) =
+  cardColour card1 == cardColour card2
+sameColourCombination (Triple card1 card2 card3) =
+  cardColour card1 == cardColour card2 && cardColour card2 == cardColour card3
+
 -- *** Step 17. A stack of cards is a (possibly)
 -- empty number of cards placed on top of one another.
 --
@@ -114,10 +245,25 @@ module Day1 where
 -- - a stack can be empty;
 -- - if a stack isn't empty, there's a top card and a (smaller)
 --   stack below.
---
+
+data Stack =
+    Empty
+  | Card `OnTopOf` Stack
+  deriving Show
+
+infixr 5 `OnTopOf`
+
+-- >>> min 3 5
+-- 3
+-- >>> 3 `min` 5
+-- 3
 
 -- *** Step 18. Let's define a function that counts
 -- the number of cards in a stack.
+
+stackSize :: Stack -> Int
+stackSize Empty                   = 0
+stackSize (_card `OnTopOf` stack) = 1 + stackSize stack
 
 -- Interlude: standard design pattern
 
@@ -126,9 +272,42 @@ module Day1 where
 -- the others in their original order. Let's
 -- write a function for this.
 
+removeColourFromStack :: CardColour -> Stack -> Stack
+removeColourFromStack _colour Empty = Empty
+removeColourFromStack colour (card `OnTopOf` stack)
+  | cardColour card == colour = removeColourFromStack colour stack
+  | otherwise                 = card `OnTopOf` removeColourFromStack colour stack
+
+-- >>> otherwise
+-- True
+
+-- removeColourFromStack colour (card `OnTopOf` stack) =
+--   if cardColour card == colour
+--     then ...
+--     else ...
+--
+-- removeColourFromStack colour (card `OnTopOf` stack) =
+--   case cardColour card == colour of
+--     True -> ...
+--     False -> ...
+
+cardHasColour :: CardColour -> Card -> Bool
+cardHasColour colour card = cardColour card == colour
+
 -- *** Step 20. Sometimes, we want to flip a stack,
 -- reversing the order of all the cards.
 -- (accumulator, let/where, partial parameterisation)
+
+reverseStack :: Stack -> Stack
+reverseStack stack = reverseStackAux Empty stack
+
+reverseStackAux :: Stack -> Stack -> Stack
+reverseStackAux acc Empty = acc
+reverseStackAux acc (card `OnTopOf` stack) =
+  reverseStackAux (card `OnTopOf` acc) stack
+
+-- >>> reverseStack (exampleCard `OnTopOf` (MkCard Black Rank3 `OnTopOf` Empty))
+-- MkCard {cardColour = Black, cardRank = Rank3} `OnTopOf` (MkCard {cardColour = Red, cardRank = Rank2} `OnTopOf` Empty)
 
 -- *** Step 21. We want to find the highest-valued
 -- card in a stack. Such a card does not always exist
