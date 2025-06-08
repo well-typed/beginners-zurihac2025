@@ -306,6 +306,9 @@ reverseStackAux acc Empty = acc
 reverseStackAux acc (card `OnTopOf` stack) =
   reverseStackAux (card `OnTopOf` acc) stack
 
+exampleStack :: Stack
+exampleStack = exampleCard `OnTopOf` (MkCard Black Rank3 `OnTopOf` Empty)
+
 -- >>> reverseStack (exampleCard `OnTopOf` (MkCard Black Rank3 `OnTopOf` Empty))
 -- MkCard {cardColour = Black, cardRank = Rank3} `OnTopOf` (MkCard {cardColour = Red, cardRank = Rank2} `OnTopOf` Empty)
 
@@ -320,6 +323,21 @@ reverseStackAux acc (card `OnTopOf` stack) =
 --
 -- (Parameterised datatypes.)
 
+highestValuedCard :: Stack -> Maybe Card
+highestValuedCard Empty = Nothing
+highestValuedCard (card `OnTopOf` stack) = Just (highestValuedCardAux card stack)
+
+highestValuedCardAux :: Card -> Stack -> Card
+highestValuedCardAux acc Empty = acc
+highestValuedCardAux acc (card `OnTopOf` stack)
+  | scoreCard card > scoreCard acc = highestValuedCardAux card stack
+  | otherwise                      = highestValuedCardAux acc stack
+
+-- >>> highestValuedCard exampleStack
+-- Just (MkCard {cardColour = Black, cardRank = Rank3})
+-- >>> highestValuedCard Empty
+-- Nothing
+
 -- *** Step 22. The concept of stacks is also very
 -- common. It's a special case of Haskell's list type.
 -- Lists are just parameterised stacks, but look
@@ -332,13 +350,70 @@ reverseStackAux acc (card `OnTopOf` stack) =
 -- Let's define direct conversion functions between
 -- 'Stack' and '[Card]' to establish the correspondence.
 
+list :: [Int]
+list = [1,2]
+
+list' :: [] Int
+list' = [1,2]
+
+stackToList :: Stack -> [Card]
+stackToList Empty                  = []
+stackToList (card `OnTopOf` cards) = card : stackToList cards
+
+listToStack :: [Card] -> Stack
+listToStack []             = Empty
+listToStack (card : cards) = card `OnTopOf` listToStack cards
+
 -- *** Step 23. Let's directly redefine flipStack on lists.
 -- It doesn't make any assumptions about the type of elements,
 -- so it can be (parametrically) polymorphic.
 
 -- This function exists in the library as 'reverse'.
 
+-- >>> reverse [1,2,3]
+-- [3,2,1]
+-- >>> reverse (1 : (2 : (3 : [])))
+-- [3,2,1]
+-- >>> :t reverse
+-- reverse :: [a] -> [a]
+-- >>> reverse [False, True, True]
+-- [True,True,False]
+-- >>> reverse [1.2, 2.3, 3.4]
+-- [3.4,2.3,1.2]
+-- >>> reverse [Yellow, Red]
+-- [Red,Yellow]
+
+listOfIntegerOperators :: [Int -> Int -> Int]
+listOfIntegerOperators = [(+), (-), (*)]
+
+reversedListOfIntegerOperators :: [Int -> Int -> Int]
+reversedListOfIntegerOperators = reverse listOfIntegerOperators
+
 -- *** Step 24. Let's define a function that appends two lists.
+
+append :: [a] -> [a] -> [a]
+append []       ys = ys
+append (x : xs) ys = x : append xs ys
+
+-- >>> append [1,2,3] [4,5,6]
+-- [1,2,3,4,5,6]
+-- >>> [1,2,3] ++ [4,5,6]
+-- [1,2,3,4,5,6]
+--
+-- >>> "Hello"
+-- "Hello"
+-- >>> ['H', 'e', 'l', 'l', 'o']
+-- "Hello"
+-- >>> 'H' : 'e' : 'l' : 'l' : 'o' : []
+-- "Hello"
+--
+-- >>> :t 'H'
+-- 'H' :: Char
+-- >>> :i String
+-- type String :: *
+-- type String = [Char]
+--   	-- Defined in ‘GHC.Base’
+--
 
 -- This function exists in the library as '++'.
 
@@ -346,23 +421,70 @@ reverseStackAux acc (card `OnTopOf` stack) =
 -- colour can be generalised by abstracting over a predicate
 -- on the elements. This is our first true higher-order function!
 
+filterList :: (a -> Bool) -> [a] -> [a]
+filterList _ [] = []
+filterList p (x : xs)
+  | p x       = x : filterList p xs
+  | otherwise = filterList p xs
+
 -- This function exists in the library as 'filter'.
 
 -- *** Step 26. Let's now actually re-express 'removeColour'
 -- via 'filterList' (but on '[Card]' rather than 'Stack').
 -- (lambda expressions)
 
+removeColour :: CardColour -> [Card] -> [Card]
+removeColour colour cards = filterList (\ card -> not (cardColour card == colour)) cards
+
+-- >>> filter (\ x -> x > 2) [1,3,7,-4,5,4,3]
+-- [3,7,5,4,3]
+-- >>> filter (> 2) [1,3,7,-4,5,4,3]
+-- [3,7,5,4,3]
+-- >>> filter (2 >) [1,3,7,-4,5,4,3]
+-- [1,-4]
+-- >>> filter (\ x -> 2 > x) [1,3,7,-4,5,4,3]
+-- [1,-4]
+
 -- *** Step 27. Every card has a matching card. The matching
 -- card is the one of the same colour so that the ranks add up
 -- to 4. Let's define a function that computes the matching card
 -- for a given card.
 
+matchingCard :: Card -> Card
+matchingCard (MkCard colour rank) = MkCard colour (matchingRank rank)
+
+matchingRank :: Rank -> Rank
+matchingRank Rank1 = Rank3
+matchingRank Rank2 = Rank2
+matchingRank Rank3 = Rank1
+
 -- *** Step 28. For a stack of cards, let's compute the stack of
 -- cards where every card has been replaced by its matching card.
+
+matchingCards :: [Card] -> [Card]
+matchingCards [] = []
+matchingCards (card : cards) = matchingCard card : matchingCards cards
+
+-- >>> stackToList exampleStack
+-- [MkCard {cardColour = Red, cardRank = Rank2},MkCard {cardColour = Black, cardRank = Rank3}]
+--
+-- >>> matchingCards (stackToList exampleStack)
+-- [MkCard {cardColour = Red, cardRank = Rank2},MkCard {cardColour = Black, cardRank = Rank1}]
 
 -- *** Step 29. The idea to apply the same function to every element
 -- in a list is very common. Let's define it in general on lists,
 -- abstracting over the function to be applied.
+
+mapList :: (a -> b) -> [a] -> [b]
+mapList _ [] = []
+mapList f (card : cards) = f card : mapList f cards
+
+-- >>> map (+1) [1,3,5]
+-- [2,4,6]
+-- >>> map (*2) [1,3,5]
+-- [2,6,10]
+-- >>> map (\ f -> f 3 4) listOfIntegerOperators
+-- [7,-1,12]
 
 -- *** Step 30. We want to define a list enumerating all possible cards.
 -- Let's start by enumerating all possible colours and ranks.
